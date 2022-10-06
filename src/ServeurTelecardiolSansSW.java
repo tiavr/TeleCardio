@@ -62,8 +62,17 @@ public class ServeurTelecardiolSansSW {
      * @return l'avis
      */
     public String lireAvis(int numDossier){
-        String avis = listeTraite.get(numDossier).getAvis();
-        return avis;
+        this.listeCentralise = new ArrayList<>();
+        listeCentralise.addAll(listeAttente);
+        listeCentralise.addAll(listeTraite);
+        listeCentralise.addAll(liste_dossiers);
+        ArrayList<DossierExpertise> newList = new ArrayList<>();
+        for (DossierExpertise dossier : listeCentralise){
+            if(dossier.getNumero() == numDossier){
+                newList.add(dossier);
+            }
+        }
+        return newList.get(0).getAvis();
     }
 
     /**
@@ -72,8 +81,17 @@ public class ServeurTelecardiolSansSW {
      * @return l'ECG
      */
     public List<Double> getEcg(int numDossier){
-        List<Double> ecg = liste_dossiers.get(numDossier).getEcg();
-        return ecg;
+        this.listeCentralise = new ArrayList<>();
+        listeCentralise.addAll(listeAttente);
+        listeCentralise.addAll(listeTraite);
+        listeCentralise.addAll(liste_dossiers);
+      ArrayList<DossierExpertise> newList = new ArrayList<>();
+        for (DossierExpertise dossier : listeCentralise){
+            if(dossier.getNumero() == numDossier){
+                newList.add(dossier);
+            }
+        }
+        return newList.get(0).getEcg();
     }
     /**
      * Permet de récuper les informations relatives au spécialiste ayant traité le dossier
@@ -81,8 +99,17 @@ public class ServeurTelecardiolSansSW {
      * @return les informations relatives au spécialiste ayant traité le dossier
      */
     public String getSpecialiste(int numDossier){
-        String specialiste = liste_dossiers.get(numDossier).getSpecialiste();
-        return specialiste;
+        this.listeCentralise = new ArrayList<>();
+        listeCentralise.addAll(listeAttente);
+        listeCentralise.addAll(listeTraite);
+        listeCentralise.addAll(liste_dossiers);
+        ArrayList<DossierExpertise> newList = new ArrayList<>();
+        for (DossierExpertise dossier : listeCentralise){
+            if(dossier.getNumero() == numDossier){
+                newList.add(dossier);
+            }
+        }
+        return newList.get(0).getSpecialiste();
     }
     /**
      *Permet de récuper les informations relatives au généraliste ayant déposé le dossier
@@ -90,8 +117,17 @@ public class ServeurTelecardiolSansSW {
      * @return les informations relatives au généraliste ayant traité le dossier
      */
     public String getGeneraliste(int numDossier){
-        String generaliste = liste_dossiers.get(numDossier).getGeneraliste();
-        return generaliste;
+        this.listeCentralise = new ArrayList<>();
+        listeCentralise.addAll(listeAttente);
+        listeCentralise.addAll(listeTraite);
+        listeCentralise.addAll(liste_dossiers);
+        ArrayList<DossierExpertise> newList = new ArrayList<>();
+        for (DossierExpertise dossier : listeCentralise){
+            if(dossier.getNumero() == numDossier){
+                newList.add(dossier);
+            }
+        }
+        return newList.get(0).getGeneraliste();
     }
 
     /**
@@ -101,10 +137,18 @@ public class ServeurTelecardiolSansSW {
      * @return L'état du dossier
      */
     public String getEtat(int numDossier){
+
+        this.listeCentralise = new ArrayList<>();
         listeCentralise.addAll(listeAttente);
         listeCentralise.addAll(listeTraite);
         listeCentralise.addAll(liste_dossiers);
-        int etat = listeCentralise.get(numDossier).getEtat();
+        ArrayList<DossierExpertise> newList = new ArrayList<>();
+        for (DossierExpertise dossier : listeCentralise){
+            if(dossier.getNumero() == numDossier){
+                newList.add(dossier);
+            }
+        }
+        int etat = newList.get(0).getEtat();
         var result =  switch (etat) {
             case 1 -> "Déposé";
             case 2 -> "En Attente";
@@ -120,8 +164,17 @@ public class ServeurTelecardiolSansSW {
      * @return Les signes
      */
     public String getSignes(int numDossier) {
-        String signes = liste_dossiers.get(numDossier).getSignes();
-        return signes;
+        this.listeCentralise = new ArrayList<>();
+        listeCentralise.addAll(listeAttente);
+        listeCentralise.addAll(listeTraite);
+        listeCentralise.addAll(liste_dossiers);
+        ArrayList<DossierExpertise> newList = new ArrayList<>();
+        for (DossierExpertise dossier : listeCentralise){
+            if(dossier.getNumero() == numDossier){
+                newList.add(dossier);
+            }
+        }
+        return newList.get(0).getSignes();
     }
     /**
      * Permet de récupérer les infos relatives au patient
@@ -129,16 +182,25 @@ public class ServeurTelecardiolSansSW {
      * @return Informations relatives au patient
      */
     public String getPatient(int numDossier){
-        String patient = liste_dossiers.get(numDossier).getPatient();
-        return patient;
+        this.listeCentralise = new ArrayList<>();
+        listeCentralise.addAll(listeAttente);
+        listeCentralise.addAll(listeTraite);
+        listeCentralise.addAll(liste_dossiers);
+        ArrayList<DossierExpertise> newList = new ArrayList<>();
+        for (DossierExpertise dossier : listeCentralise){
+            if(dossier.getNumero() == numDossier){
+                newList.add(dossier);
+            }
+        }
+        return newList.get(0).getPatient();
     }
     /**
      * Permet de récupérer le dossier traité
      * @param specialiste le spécialiste ayant traité le dossier
      * @return le numéro du dossier à récupérer
      */
-    public int recupererDossier(String specialiste){
-        DossierExpertise dossier = new DossierExpertise(getPatient(0), getGeneraliste(0), getSignes(0), getEcg(0));
+    public int recupererDossier(String specialiste, int numDossier){
+        DossierExpertise dossier = new DossierExpertise(getPatient(numDossier), getGeneraliste(numDossier), getSignes(numDossier), getEcg(numDossier));
         dossier.setEtat(2);
         dossier.setSpecialiste(specialiste);
         dossier.setNumero(liste_dossiers.get(0).getNumero());
@@ -152,14 +214,18 @@ public class ServeurTelecardiolSansSW {
      * @param numDossier le numéro du dossier traité
      */
     public void deposerAvis(String avis, int numDossier){
-        for(DossierExpertise dossier : listeAttente){
+        this.listeCentralise = new ArrayList<>();
+        listeCentralise.addAll(listeAttente);
+        listeCentralise.addAll(listeTraite);
+        listeCentralise.addAll(liste_dossiers);
+        ArrayList<DossierExpertise> newList = new ArrayList<>();
+        for(DossierExpertise dossier : listeCentralise){
             if(dossier.getNumero() == numDossier){
-                dossier.setAvis(avis);
-                dossier.setEtat(3);
-                listeTraite.add(dossier);
-                listeAttente.remove(dossier);
+                newList.add(dossier);
             }
         }
+        newList.get(0).setAvis(avis);
+        newList.get(0).setEtat(3);
     }
 
 
