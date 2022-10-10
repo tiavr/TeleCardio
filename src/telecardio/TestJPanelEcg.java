@@ -1,5 +1,6 @@
 /* TestJPanelEcg.java */
 
+package telecardio;
 
 /**
  * Test du JPanelECG.
@@ -26,7 +27,7 @@ public class TestJPanelEcg extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanelEcg1 = new JPanelEcg();
+        jPanelEcg1 = new telecardio.JPanelEcg();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().add(jPanelEcg1, java.awt.BorderLayout.CENTER);
@@ -70,6 +71,6 @@ public class TestJPanelEcg extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private JPanelEcg jPanelEcg1;
+    private telecardio.JPanelEcg jPanelEcg1;
     // End of variables declaration//GEN-END:variables
 }
