@@ -5,6 +5,7 @@
 package telecardio;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.event.*;
 import java.util.Objects;
 
@@ -14,23 +15,42 @@ import java.util.Objects;
  */
 public class ApplicationGeneraliste extends javax.swing.JFrame {
     private String generaliste;
+    private SimulateurEcg ecg = new SimulateurEcg();
     /**
      * Creates new form ApplicationGeneraliste
      */
-    public ApplicationGeneraliste() {
+    public ApplicationGeneraliste(ServeurTelecardiolSansSW serveur) {
         initComponents();
+        DefaultTableModel model = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        jTable1.setModel(model);
+        model.addColumn("Numéro Dossier");
+        model.addColumn("Etat");
         JFrame frame =new JFrame();
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(jPanel1);
         frame.pack();
-        frame.setSize(300,480);
         frame.setVisible(true);
-
+        jTabbedPane2.setEnabledAt(1, false);
+        jTabbedPane2.setEnabledAt(2, false);
+        jTabbedPane2.setEnabledAt(3, false);
         nomGeneraliste.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e){
                 nomGeneraliste.setText("");
             }
         });
 
+        cycleECG.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e){
+                cycleECG.setText("");
+            }
+        });
+
+        //Button Panel 1
         deposerButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -41,12 +61,12 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
                 else {
                     generaliste = nomGeneraliste.getText();
                     jTabbedPane2.setSelectedIndex(1);
-                    jTabbedPane2.setEnabled(true);
+                    jTabbedPane2.setEnabledAt(1, true);
                 }
             }
         });
 
-        etatButton.addActionListener(new ActionListener() {
+        dossiersButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(nomGeneraliste.getText().equals("")){
@@ -55,25 +75,138 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
                 }
                 else{
                     generaliste = nomGeneraliste.getText();
-                    jTabbedPane2.setSelectedIndex(2);
-                    jTabbedPane2.setEnabled(true);
+                    if(serveur.rechercheDossierNomGeneraliste(generaliste).isEmpty()){
+                        JOptionPane.showMessageDialog(null, "Aucun dossier traité par ce généraliste");
+                    }
+                    else{
+                        model.setRowCount(0);
+                        for(DossierExpertise dossier : serveur.rechercheDossierNomGeneraliste(generaliste)){
+                            model.addRow(new Object[]{dossier.getNumero(), serveur.getEtat(dossier.getNumero()) });
+
+                        }
+                        jTabbedPane2.setEnabledAt(2,true);
+                        jTabbedPane2.setEnabledAt(3,false);
+                        jTabbedPane2.setEnabledAt(1,false);
+                        jTabbedPane2.setSelectedIndex(2);
+                    }
+
+
                 }
             }
         });
 
-        avisButton.addActionListener(new ActionListener() {
+        retourButtonTable.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(nomGeneraliste.getText().equals("") || nomGeneraliste.getText().equals("Veuillez saisir votre nom")){
-                    JOptionPane.showMessageDialog(null, "Veuillez saisir votre nom");
+                jTabbedPane2.setSelectedIndex(0);
+                jTabbedPane2.setEnabledAt(2,false);
+                jTabbedPane2.setEnabledAt(3,false);
+            }
+        });
+
+
+        ecgButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(isNumeric(cycleECG.getText())){
+                    SimulateurEcg ecg = new SimulateurEcg();
+                    jPanelEcg1.setEcg(ecg.genererEcg(Integer.parseInt(cycleECG.getText())));
                 }
                 else{
-                    generaliste = nomGeneraliste.getText();
-                    jTabbedPane2.setSelectedIndex(3);
-                    jTabbedPane2.setEnabled(true);
+                    JOptionPane.showMessageDialog(null, "Veuillez saisir un cycle ecg valide");
                 }
             }
         });
+        //Listeners pannel 2
+        transmettreDossierButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(isNumeric(nomPatient.getText()) || !isNumeric(cycleECG.getText()) || jTextArea1.getText().equals("")){
+                    JOptionPane.showMessageDialog(null, "Les données fournies sont incorrectes");
+                }
+                else{
+                    DossierExpertise dossier = new DossierExpertise(nomPatient.getText(), generaliste, jTextArea1.getText(), SimulateurEcg.genererEcg(Integer.parseInt(cycleECG.getText())));
+                    int numDossier = serveur.deposerDossier(dossier.getPatient(), dossier.getGeneraliste(), dossier.getSignes(), dossier.getEcg());
+                    dossier.setNumero(numDossier);
+                    numeroDossier.setText(Integer.toString(dossier.getNumero()));
+                    JOptionPane.showMessageDialog(null, "Le dossier numéro " + dossier.getNumero() + " a bien été transmis");
+                    jTabbedPane2.setEnabledAt(0,false);
+                }
+
+            }
+        });
+
+        retourButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                jTabbedPane2.setSelectedIndex(0);
+                numeroDossier.setText("");
+                nomPatient.setText("");
+                jTextArea1.setText("");
+                cycleECG.setText("");
+                jPanelEcg1.setEcg(SimulateurEcg.genererEcg(0));
+                jTabbedPane2.setEnabledAt(1,false);
+            }
+        });
+
+        jTable1.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {     // to detect doble click events
+                    JTable target = (JTable)e.getSource();
+                    int row = target.getSelectedRow(); // select a row
+                    int column = target.getSelectedColumn(); // select a column
+                    jTabbedPane2.setSelectedIndex(3);
+                    jTabbedPane2.setEnabledAt(3, true);
+                    numeroDossierAvis.setText(String.valueOf(jTable1.getValueAt(row, column)));
+                    nomPatientAvis.setText(serveur.getPatient((Integer) jTable1.getValueAt(row, column)));
+                    if(serveur.getSpecialiste((Integer) jTable1.getValueAt(row, column)) == null){
+                        nomSpecialiste.setText("Pas de spécialiste attribué");
+                    }
+                    else{
+                        nomSpecialiste.setText(serveur.getSpecialiste(((Integer) jTable1.getValueAt(row, column))));
+                    }
+
+                    avisSpecialiste.setText(serveur.lireAvis(((Integer) jTable1.getValueAt(row, column))));
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+
+            }
+
+        });
+
+
+    }
+
+    public ApplicationGeneraliste() {
+
+    }
+
+    public static boolean isNumeric(String str) {
+        try {
+            Double.parseDouble(str);
+            return true;
+        } catch(NumberFormatException e){
+            return false;
+        }
     }
 
     /**
@@ -91,8 +224,7 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         jPanel3 = new javax.swing.JPanel();
         jLabel3 = new javax.swing.JLabel();
         nomGeneraliste = new javax.swing.JTextField();
-        avisButton = new javax.swing.JButton();
-        etatButton = new javax.swing.JButton();
+        dossiersButton = new javax.swing.JButton();
         deposerButton = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         jLabel4 = new javax.swing.JLabel();
@@ -104,13 +236,15 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         jTextArea1 = new javax.swing.JTextArea();
         jLabel8 = new javax.swing.JLabel();
         cycleECG = new javax.swing.JTextField();
+        ecgButton = new javax.swing.JButton();
+        transmettreDossierButton = new javax.swing.JButton();
         jPanelEcg1 = new telecardio.JPanelEcg();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
+        retourButton = new javax.swing.JButton();
         jPanel5 = new javax.swing.JPanel();
         jPanel7 = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
+        retourButtonTable = new javax.swing.JButton();
         jPanel6 = new javax.swing.JPanel();
         jLabel6 = new javax.swing.JLabel();
         numeroDossierAvis = new javax.swing.JTextField();
@@ -122,7 +256,6 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         avisSpecialiste = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setPreferredSize(new java.awt.Dimension(100, 200));
         setResizable(false);
         setSize(new java.awt.Dimension(300, 480));
 
@@ -133,7 +266,6 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         jTabbedPane2.setBackground(new java.awt.Color(188, 223, 191));
         jTabbedPane2.setTabPlacement(javax.swing.JTabbedPane.LEFT);
         jTabbedPane2.setToolTipText("");
-        jTabbedPane2.setEnabled(false);
         jTabbedPane2.setPreferredSize(new java.awt.Dimension(300, 480));
 
         jPanel3.setBackground(new java.awt.Color(188, 223, 191));
@@ -143,7 +275,7 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         jLabel3.setFont(new java.awt.Font("DejaVu Sans Mono", 0, 16)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(0, 0, 0));
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel3.setText("Spécialiste :");
+        jLabel3.setText("Généraliste :");
 
         nomGeneraliste.setBackground(new java.awt.Color(255, 255, 255));
         nomGeneraliste.setForeground(new java.awt.Color(0, 0, 0));
@@ -154,12 +286,10 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
             }
         });
 
-        avisButton.setText("Consulter Avis");
-
-        etatButton.setText("Consulter Etat");
-        etatButton.addActionListener(new java.awt.event.ActionListener() {
+        dossiersButton.setText("Consulter Dossiers");
+        dossiersButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                etatButtonActionPerformed(evt);
+                dossiersButtonActionPerformed(evt);
             }
         });
 
@@ -177,12 +307,11 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGap(81, 81, 81)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(avisButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(nomGeneraliste, javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(etatButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(deposerButton, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(78, Short.MAX_VALUE))
+                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 139, Short.MAX_VALUE)
+                    .addComponent(deposerButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(dossiersButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(71, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -191,16 +320,14 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
                 .addComponent(jLabel3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(nomGeneraliste, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 204, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 244, Short.MAX_VALUE)
                 .addComponent(deposerButton)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(etatButton)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(avisButton)
-                .addGap(51, 51, 51))
+                .addComponent(dossiersButton)
+                .addGap(60, 60, 60))
         );
 
-        jTabbedPane2.addTab("", jPanel3);
+        jTabbedPane2.addTab("Accueil", jPanel3);
 
         jPanel4.setBackground(new java.awt.Color(188, 223, 191));
 
@@ -208,6 +335,7 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         jLabel4.setForeground(new java.awt.Color(0, 0, 0));
         jLabel4.setText("Dossier n°:");
 
+        numeroDossier.setEditable(false);
         numeroDossier.setBackground(new java.awt.Color(255, 255, 255));
         numeroDossier.setForeground(new java.awt.Color(0, 0, 0));
         numeroDossier.addActionListener(new java.awt.event.ActionListener() {
@@ -237,10 +365,13 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         jLabel8.setForeground(new java.awt.Color(0, 0, 0));
         jLabel8.setText("ECG :");
 
-        cycleECG.setEditable(false);
         cycleECG.setBackground(new java.awt.Color(255, 255, 255));
         cycleECG.setForeground(new java.awt.Color(0, 0, 0));
         cycleECG.setText("Nombre de cycles ?");
+
+        ecgButton.setText("ECG");
+
+        transmettreDossierButton.setText("Transmettre");
 
         javax.swing.GroupLayout jPanelEcg1Layout = new javax.swing.GroupLayout(jPanelEcg1);
         jPanelEcg1.setLayout(jPanelEcg1Layout);
@@ -253,9 +384,7 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
             .addGap(0, 100, Short.MAX_VALUE)
         );
 
-        jButton1.setText("ECG");
-
-        jButton2.setText("Transmettre");
+        retourButton.setText("Retour");
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
@@ -289,14 +418,15 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
                         .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 197, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(42, 42, 42))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
-                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 73, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(ecgButton, javax.swing.GroupLayout.PREFERRED_SIZE, 73, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jPanelEcg1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(13, 13, 13))))
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addGap(95, 95, 95)
-                .addComponent(jButton2)
-                .addGap(0, 0, Short.MAX_VALUE))
+                        .addGap(21, 21, 21))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                        .addComponent(retourButton)
+                        .addGap(18, 18, 18)
+                        .addComponent(transmettreDossierButton)
+                        .addGap(62, 62, 62))))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -321,16 +451,19 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
                     .addComponent(cycleECG, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel4Layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jPanelEcg1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel4Layout.createSequentialGroup()
-                        .addGap(50, 50, 50)
-                        .addComponent(jButton1)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 66, Short.MAX_VALUE)
-                .addComponent(jButton2))
+                        .addGap(88, 88, 88)
+                        .addComponent(ecgButton)
+                        .addContainerGap(101, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 49, Short.MAX_VALUE)
+                        .addComponent(jPanelEcg1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(40, 40, 40)
+                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(transmettreDossierButton)
+                            .addComponent(retourButton)))))
         );
 
-        jTabbedPane2.addTab("", jPanel4);
+        jTabbedPane2.addTab("Dépot", jPanel4);
         jPanel4.getAccessibleContext().setAccessibleDescription("");
 
         jPanel5.setBackground(new java.awt.Color(188, 223, 191));
@@ -338,52 +471,36 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         jScrollPane2.setBackground(new java.awt.Color(188, 223, 191));
 
         jTable1.setBackground(new java.awt.Color(188, 223, 191));
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null},
-                {null, null}
-            },
-            new String [] {
-                "Numéro Dossier", "Etat"
-            }
-        ) {
-            Class[] types = new Class [] {
-                java.lang.Integer.class, java.lang.String.class
-            };
-            boolean[] canEdit = new boolean [] {
-                false, false
-            };
-
-            public Class getColumnClass(int columnIndex) {
-                return types [columnIndex];
-            }
-
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
-            }
-        });
         jTable1.setColumnSelectionAllowed(true);
         jScrollPane2.setViewportView(jTable1);
         jTable1.getColumnModel().getSelectionModel().setSelectionMode(javax.swing.ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+
+        retourButtonTable.setText("Retour");
 
         javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
         jPanel7.setLayout(jPanel7Layout);
         jPanel7Layout.setHorizontalGroup(
             jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 298, Short.MAX_VALUE)
+            .addGroup(jPanel7Layout.createSequentialGroup()
+                .addGap(112, 112, 112)
+                .addComponent(retourButtonTable)
+                .addContainerGap(113, Short.MAX_VALUE))
             .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jPanel7Layout.createSequentialGroup()
                     .addContainerGap()
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 302, Short.MAX_VALUE)))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 279, Short.MAX_VALUE)))
         );
         jPanel7Layout.setVerticalGroup(
             jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 480, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel7Layout.createSequentialGroup()
+                .addContainerGap(439, Short.MAX_VALUE)
+                .addComponent(retourButtonTable)
+                .addContainerGap())
             .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jPanel7Layout.createSequentialGroup()
                     .addContainerGap()
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 468, Short.MAX_VALUE)
-                    .addContainerGap()))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 415, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addContainerGap(48, Short.MAX_VALUE)))
         );
 
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
@@ -397,7 +514,7 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
             .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
-        jTabbedPane2.addTab("", jPanel5);
+        jTabbedPane2.addTab("Consulter", jPanel5);
 
         jPanel6.setBackground(new java.awt.Color(188, 223, 191));
 
@@ -483,13 +600,13 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
                 .addContainerGap(146, Short.MAX_VALUE))
         );
 
-        jTabbedPane2.addTab("", jPanel6);
+        jTabbedPane2.addTab("Avis", jPanel6);
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 321, Short.MAX_VALUE)
+            .addComponent(jTabbedPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 321, Short.MAX_VALUE)
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -529,9 +646,9 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_nomGeneralisteActionPerformed
 
-    private void etatButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_etatButtonActionPerformed
+    private void dossiersButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_dossiersButtonActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_etatButtonActionPerformed
+    }//GEN-LAST:event_dossiersButtonActionPerformed
 
     private void deposerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deposerButtonActionPerformed
         // TODO add your handling code here:
@@ -581,13 +698,11 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton avisButton;
     private javax.swing.JTextField avisSpecialiste;
     private javax.swing.JTextField cycleECG;
     private javax.swing.JButton deposerButton;
-    private javax.swing.JButton etatButton;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
+    private javax.swing.JButton dossiersButton;
+    private javax.swing.JButton ecgButton;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel3;
@@ -616,5 +731,8 @@ public class ApplicationGeneraliste extends javax.swing.JFrame {
     private javax.swing.JTextField nomSpecialiste;
     private javax.swing.JTextField numeroDossier;
     private javax.swing.JTextField numeroDossierAvis;
+    private javax.swing.JButton retourButton;
+    private javax.swing.JButton retourButtonTable;
+    private javax.swing.JButton transmettreDossierButton;
     // End of variables declaration//GEN-END:variables
 }

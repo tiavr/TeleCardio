@@ -100,7 +100,12 @@ public class ServeurTelecardiolSansSW {
             System.out.println("Le numéro de dossier n'existe pas");
             throw new RuntimeException(e);
         }
-        return newList.get(0).getAvis();
+        if(newList.size() > 0){
+            return newList.get(0).getAvis();
+        }
+        else{
+            return "Pas d'avis enregistré";
+        }
     }
 
     /**
@@ -256,32 +261,31 @@ public class ServeurTelecardiolSansSW {
     /**
      * Permet de proposer un dossier à un spécialiste, si celui existe déjà dans sa liste de refus le dossier suivant lui est attribué .si ce dossier n'exsite pas alors un message d'erreur s'affiche
      * @param specialiste le spécialiste ayant traité le dossier
+     * @param i L'indice permettant de récupérer un dossier dans la liste
      * @return le numéro du dossier à récupérer
      */
-    public int recupererDossier(String specialiste){
+    public int recupererDossier(String specialiste, int i){
         try {
 
-            DossierExpertise dossier = new DossierExpertise(liste_dossiers.get(0).getPatient(), liste_dossiers.get(0).getGeneraliste(), liste_dossiers.get(0).getSignes(), liste_dossiers.get(0).getEcg());
+            DossierExpertise dossier = new DossierExpertise(liste_dossiers.get(i).getPatient(), liste_dossiers.get(i).getGeneraliste(), liste_dossiers.get(i).getSignes(), liste_dossiers.get(i).getEcg());
             dossier.setEtat(2);
             dossier.setSpecialiste(specialiste);
             if(!dicoRefus.containsKey(specialiste)){
                 dicoRefus.put(specialiste, new ArrayList<>());
             }
-            dossier.setNumero(liste_dossiers.get(0).getNumero());
+            dossier.setNumero(liste_dossiers.get(i).getNumero());
             listeAttente.add(dossier);
-            liste_dossiers.remove(liste_dossiers.get(0));
+            liste_dossiers.remove(liste_dossiers.get(i));
             for (Map.Entry<String, ArrayList<Integer>> entry : dicoRefus.entrySet()) {
                 if(entry.getKey().equals(dossier.getSpecialiste())){
                     if(entry.getValue().contains(dossier.getNumero())){
-                        refuserDossier(dossier.getNumero());
-                        System.out.println("Le dossier a déjà été proposé à ce spécialiste");
+                        return -1;
                     }
                 }
             }
             return dossier.getNumero();
         } catch (Exception e) {
-            System.out.println("Le numéro de dossier n'existe pas");
-            throw new RuntimeException(e);
+            return -2;
         }
     }
     /**
@@ -309,37 +313,7 @@ public class ServeurTelecardiolSansSW {
         }
     }
 
-    /**
-     * Permet au spécialiste de refuser le dossier qui lui a été proposé. Celui-ci sera donc :rajouté en première position dans la liste des dossiers déposés, retiré de la liste des dossiers en cours, et ajouté dans la liste des dossier reufsés par le spécialiste. si ce dossier n'exsite pas alors un message d'erreur s'affiche
-     * @param numDossier numéro du dossier
-     */
-/*    public void refuserDossier(int numDossier){
-        ArrayList<DossierExpertise> toRemove = new ArrayList<>();
-        try {
-            for(DossierExpertise dossier : listeAttente){
-                if(dossier.getNumero() == numDossier){
-                    dossier.setEtat(1);
-                    dossier.setSpecialiste(null);
-                    toRemove.add(dossier);
-                    liste_dossiers.add(0, dossier);
-                    for (Map.Entry<String, ArrayList<Integer>> entry : dicoRefus.entrySet()) {
-                        System.out.println(entry.getKey());
-                        if(entry.getKey().equals(dossier.getSpecialiste())){
-                            if(!entry.getValue().contains(numDossier)){
-                                entry.getValue().add(numDossier);
-                                System.out.println(entry.getValue());
-                                System.out.println(numDossier);
-                            }
-                        }
-                    }
-                }
-            }
-            listeAttente.removeAll(toRemove);
-        } catch (Exception e) {
-            System.out.println("Le numéro de dossier n'existe pas");
-            throw new RuntimeException(e);
-        }
-    }*/
+
 
     public void refuserDossier(int numDossier){
         ArrayList<DossierExpertise> toRemove = new ArrayList<>();
@@ -349,16 +323,18 @@ public class ServeurTelecardiolSansSW {
                     for (Map.Entry<String, ArrayList<Integer>> entry : dicoRefus.entrySet()) {
                         if(entry.getKey().equals(dossier.getSpecialiste())){
                             if(!entry.getValue().contains(numDossier)){
-                                dossier.setEtat(1);
-                                dossier.setSpecialiste(null);
-                                toRemove.add(dossier);
-                                liste_dossiers.add(0, dossier);
                                 entry.getValue().add(numDossier);
                             }
+
                         }
                     }
                 }
+                dossier.setEtat(1);
+                dossier.setSpecialiste(null);
+                toRemove.add(dossier);
+                liste_dossiers.add(0,dossier);
             }
+
             listeAttente.removeAll(toRemove);
         } catch (Exception e) {
             System.out.println("Le numéro de dossier n'existe pas");
@@ -398,5 +374,23 @@ public class ServeurTelecardiolSansSW {
         return liste_dossiers.toString() + "\n" + listeAttente.toString() + "\n" + listeTraite.toString() + "\n" + dicoRefus.toString();
     }
 
+    public ArrayList<DossierExpertise> rechercheDossierNomGeneraliste(String nomGeneraliste){
+        ArrayList<DossierExpertise> newList = new ArrayList<>();
+        this.listeCentralise = new ArrayList<>();
+        listeCentralise.addAll(listeAttente);
+        listeCentralise.addAll(listeTraite);
+        listeCentralise.addAll(liste_dossiers);
+        try {
+            for(DossierExpertise dossier : listeCentralise){
+                if(dossier.getGeneraliste().equals(nomGeneraliste)){
+                    newList.add(dossier);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Aucun dossier à pour ce généraliste");
+            throw new RuntimeException(e);
+        }
+        return newList;
+    }
 
 }

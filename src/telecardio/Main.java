@@ -3,10 +3,12 @@ package telecardio;
 
 public class Main {
     public static void main(String[] args) {
-        DossierExpertise dossierExpertise = new DossierExpertise("Tiav", "Fadwa" , "Problème de coeur", SimulateurEcg.genererEcg(3));
         ServeurTelecardiolSansSW serveur = new ServeurTelecardiolSansSW();
-        serveur.deposerDossier(dossierExpertise.getPatient(), dossierExpertise.getGeneraliste(), dossierExpertise.getSignes(), dossierExpertise.getEcg());
-        new SpecialisteAccueil(serveur);
+        ServeurHopitalSansSW serveurHopital = new ServeurHopitalSansSW();
+        serveurHopital.enregistrerActe("Tiav", "Momo", "Expertise");
+        System.out.println(serveurHopital.listerDossiersAntecedents());
+        new ApplicationGeneraliste(serveur);
+        new SpecialisteAccueil(serveur, serveurHopital);
         /*System.out.println("Déposer dossier");
         int numDossier = serveur.deposerDossier(dossierExpertise.getPatient(), dossierExpertise.getGeneraliste(), dossierExpertise.getSignes(), dossierExpertise.getEcg());
         System.out.println(numDossier);

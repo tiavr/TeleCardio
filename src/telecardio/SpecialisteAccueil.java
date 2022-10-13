@@ -23,7 +23,7 @@ public class SpecialisteAccueil extends javax.swing.JFrame{
      */
 
 
-    public SpecialisteAccueil(ServeurTelecardiolSansSW serveur) {
+    public SpecialisteAccueil(ServeurTelecardiolSansSW serveur, ServeurHopitalSansSW serveurHopital) {
         initComponents();
         JFrame frame = new JFrame();
         frame.setLayout(null);
@@ -43,10 +43,21 @@ public class SpecialisteAccueil extends javax.swing.JFrame{
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                int numDossier = serveur.recupererDossier(nomSpecialiste.getText());
-                new PropositionDossier(serveur, numDossier);
-                frame.dispose();
+                int i = 0;
+                int numDossier = serveur.recupererDossier(nomSpecialiste.getText(), i);
+                if(numDossier==-1){
+                    numDossier = serveur.recupererDossier(nomSpecialiste.getText(), i++);
+                }
 
+                if(numDossier != -1 && numDossier != -2){
+                    new PropositionDossier(serveur, serveurHopital,numDossier);
+                    frame.dispose();
+                }
+                else{
+                    JOptionPane.showMessageDialog(null, "Aucun dossier disponible pour le moment");
+                }
+
+                System.out.println(serveur.getListe_dossiers());
             }
         });
     }

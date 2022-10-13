@@ -21,7 +21,7 @@ public class PropositionDossier extends javax.swing.JFrame {
     /**
      * Creates new form PropositionDossier
      */
-    public PropositionDossier(ServeurTelecardiolSansSW serveur, int numDossier) {
+    public PropositionDossier(ServeurTelecardiolSansSW serveur,ServeurHopitalSansSW serveurHopital, int numDossier) {
         initComponents();
         this.numDossier = numDossier;
         this.serveur = serveur;
@@ -42,20 +42,36 @@ public class PropositionDossier extends javax.swing.JFrame {
             }
         }
 
+        antecedentButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(serveurHopital.rechercherAntecedents(nomPatient.getText()).equals("")){
+                    JOptionPane.showMessageDialog(null, "Le patient n'a pas d'antécédents");
+                }
+                else{
+
+                    JOptionPane.showMessageDialog(null, serveurHopital.rechercherAntecedents(nomPatient.getText()));
+                }
+
+
+            }
+        });
+
         refuserButton.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
                 serveur.refuserDossier(numDossier);
                 frame.dispose();
-                new SpecialisteAccueil(serveur);
+                new SpecialisteAccueil(serveur, serveurHopital);
+                System.out.println(serveur.getListe_dossiers());
             }
         });
 
         avisButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new RedactionAvis(serveur, numDossier);
+                new RedactionAvis(serveur, serveurHopital, numDossier);
                 frame.dispose();
             }
         });

@@ -20,7 +20,7 @@ public class RedactionAvis extends javax.swing.JFrame {
 
     JFrame frame = new JFrame();
     ServeurTelecardiolSansSW serveur;
-    public RedactionAvis(ServeurTelecardiolSansSW serveur, int numDossier) {
+    public RedactionAvis(ServeurTelecardiolSansSW serveur, ServeurHopitalSansSW serveurHopital, int numDossier) {
         initComponents();
         this.serveur = serveur;
         frame.setLayout(null);
@@ -33,14 +33,15 @@ public class RedactionAvis extends javax.swing.JFrame {
         jButton1.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
                 serveur.deposerAvis(jTextField1.getText(), numDossier);
-                new SpecialisteAccueil(serveur);
+                serveurHopital.enregistrerActe(serveur.getPatient(numDossier), serveur.getSpecialiste(numDossier), "Expertise");
+                new SpecialisteAccueil(serveur, serveurHopital);
                 frame.dispose();
             }
         });
         jButton2.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new PropositionDossier(serveur, numDossier);
+                new PropositionDossier(serveur, serveurHopital, numDossier);
                 frame.dispose();
             }
         });
